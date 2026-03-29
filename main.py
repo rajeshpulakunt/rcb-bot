@@ -1,48 +1,43 @@
 import requests
 import time
 import os
-from bs4 import BeautifulSoup
 
-# 🔗 URLs to monitor (add more if needed)
-URLS = [
-    "https://shop.royalchallengers.com/tickets"
-]
+URL = "https://shop.royalchallengers.com/tickets"
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
-CHECK_INTERVAL = 5  # seconds
+CHECK_INTERVAL = 3  # ⚡ faster
 
-def send_telegram(message):
+session = requests.Session()
+
+def send_telegram(msg):
     try:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-        requests.post(url, data={
-            "chat_id": CHAT_ID,
-            "text": message
-        })
+        session.post(url, data={"chat_id": CHAT_ID, "text": msg})
     except Exception as e:
         print("Telegram Error:", e)
 
-def check_page(url):
+def fast_check():
     try:
         headers = {
-            "User-Agent": "Mozilla/5.0"
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "text/html",
+            "Connection": "keep-alive"
         }
 
-        res = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(res.text, "html.parser")
+        res = session.get(URL, headers=headers, timeout=5)
+        text = res.text.lower()
 
-        text = soup.get_text().lower()
-
-        # 🎯 Smart detection
-        if "buy tickets" in text or "book now" in text:
+        # ⚡ FAST KEY SIGNALS
+        if "buy tickets" in text or "add to cart" in text:
             return True
 
         if "tickets not available" in text or "sold out" in text:
             return False
 
-        # fallback logic
-        if "ticket" in text and "available" in text:
+        # fallback signal
+        if "ticket" in text and "₹" in text:
             return True
 
         return False
@@ -52,35 +47,29 @@ def check_page(url):
         return False
 
 
-print("🚀 Advanced RCB Bot Running...")
+print("🚀 ULTRA FAST BOT RUNNING...")
 
 alert_active = False
 
 while True:
-    found = False
+    available = fast_check()
 
-    for url in URLS:
-        if check_page(url):
-            found = True
-            break
+    if available:
+        print("🔥 DETECTED!")
 
-    if found:
-        print("🔥 Tickets detected!")
-
-        # 🔁 Send repeated alerts (3 times)
-        for i in range(3):
-            send_telegram(f"🔥 RCB TICKETS LIVE!\nGo FAST:\nhttps://shop.royalchallengers.com/")
-            print(f"🚨 Alert {i+1} sent")
-            time.sleep(2)
+        # 🔁 Rapid burst alerts
+        for i in range(5):
+            send_telegram("🔥🔥 RCB TICKETS LIVE NOW!\nhttps://shop.royalchallengers.com/")
+            time.sleep(1)
 
         alert_active = True
 
-        # ⏸ Pause briefly to avoid spam
-        time.sleep(60)
+        # ⏸ cooldown
+        time.sleep(45)
 
     else:
         if alert_active:
-            print("🔄 Tickets gone / reset")
+            print("🔄 Reset state")
             alert_active = False
 
     time.sleep(CHECK_INTERVAL)
